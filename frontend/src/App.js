@@ -3,7 +3,10 @@ import './App.css';
 
 function App() {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-  const [fase, setFase] = useState('inicio');
+  const [fase, setFase] = useState('login');
+  const [jogador, setJogador] = useState(null);
+  const [nomeInput, setNomeInput] = useState('');
+  const [ranking, setRanking] = useState([]);
   const [nivel, setNivel] = useState(1);
   const [palavras, setPalavras] = useState([]);
   const [palavrasEmbaralhadas, setPalavrasEmbaralhadas] = useState([]);
@@ -16,6 +19,15 @@ function App() {
   const [abaInfo, setAbaInfo] = useState('instrucoes');
 
   useEffect(() => {
+    const jogadorSalvo = localStorage.getItem('jogador');
+    if (jogadorSalvo) {
+      setJogador(JSON.parse(jogadorSalvo));
+      setFase('inicio');
+    }
+    carregarRanking();
+  }, []);
+
+  useEffect(() => {
     if (tema === 'sistema') {
       const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.body.className = darkMode ? 'dark' : 'light';
@@ -23,6 +35,47 @@ function App() {
       document.body.className = tema;
     }
   }, [tema]);
+
+  const carregarRanking = () => {
+    const rankingData = JSON.parse(localStorage.getItem('ranking') || '[]');
+    setRanking(rankingData.sort((a, b) => b.pontuacao - a.pontuacao).slice(0, 10));
+  };
+
+  const fazerLogin = () => {
+    if (!nomeInput.trim()) return;
+    const rankingData = JSON.parse(localStorage.getItem('ranking') || '[]');
+    const jogadorExistente = rankingData.find(j => j.nome === nomeInput.trim());
+    
+    const novoJogador = jogadorExistente || { nome: nomeInput.trim(), pontuacao: 0 };
+    localStorage.setItem('jogador', JSON.stringify(novoJogador));
+    setJogador(novoJogador);
+    setFase('inicio');
+  };
+
+  const sair = () => {
+    localStorage.removeItem('jogador');
+    setJogador(null);
+    setFase('login');
+    setNivel(1);
+  };
+
+  const atualizarPontuacao = (pontos) => {
+    const jogadorAtualizado = { ...jogador, pontuacao: jogador.pontuacao + pontos };
+    setJogador(jogadorAtualizado);
+    localStorage.setItem('jogador', JSON.stringify(jogadorAtualizado));
+    
+    const rankingData = JSON.parse(localStorage.getItem('ranking') || '[]');
+    const index = rankingData.findIndex(j => j.nome === jogador.nome);
+    
+    if (index >= 0) {
+      rankingData[index] = jogadorAtualizado;
+    } else {
+      rankingData.push(jogadorAtualizado);
+    }
+    
+    localStorage.setItem('ranking', JSON.stringify(rankingData));
+    carregarRanking();
+  };
 
   const iniciarResposta = useCallback(() => {
     const indices = palavras.map((_, i) => i);
@@ -65,6 +118,7 @@ function App() {
       })
     });
     const data = await res.json();
+    atualizarPontuacao(Math.round(data.pontuacao * 10));
     setResultado(data);
     setFase('resultado');
   };
@@ -111,6 +165,7 @@ function App() {
                 <div>
                   <h3>Como Jogar</h3>
                   <ol>
+                    <li>Faça login com seu nome</li>
                     <li>Clique em "Iniciar Jogo" para começar</li>
                     <li>Memorize as palavras exibidas no tempo disponível</li>
                     <li>Digite as palavras nas posições corretas (os números serão embaralhados)</li>
@@ -161,7 +216,13 @@ function App() {
       <header>
         <h1>Jogo de Memória</h1>
         <div className="controls">
-          <span className="nivel">Nível {nivel}</span>
+          {jogador && (
+            <>
+              <span className="jogador-info">{jogador.nome}: {jogador.pontuacao}pts</span>
+              <span className="nivel">Nível {nivel}</span>
+              <button onClick={sair} className="btn-sair">Sair</button>
+            </>
+          )}
           <select value={tema} onChange={(e) => setTema(e.target.value)} className="tema-select">
             <option value="sistema">Sistema</option>
             <option value="light">Claro</option>
@@ -170,8 +231,53 @@ function App() {
         </div>
       </header>
 
+      {fase === 'login' && (
+        <div className="fase-container">
+          <h2>Bem-vindo!</h2>
+          <div className="login-box">
+            <input
+              type="text"
+              value={nomeInput}
+              onChange={(e) => setNomeInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && fazerLogin()}
+              placeholder="Digite seu nome"
+              autoFocus
+            />
+            <button onClick={fazerLogin}>Entrar</button>
+          </div>
+          {ranking.length > 0 && (
+            <div className="ranking-box">
+              <h3>🏆 Ranking</h3>
+              <ol>
+                {ranking.map((j, i) => (
+                  <li key={i}>
+                    <span className="rank-nome">{j.nome}</span>
+                    <span className="rank-pontos">{j.pontuacao}pts</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
+
       {fase === 'inicio' && (
-        <button onClick={iniciarJogo}>Iniciar Jogo</button>
+        <div className="fase-container">
+          <button onClick={iniciarJogo}>Iniciar Jogo</button>
+          {ranking.length > 0 && (
+            <div className="ranking-box">
+              <h3>🏆 Ranking</h3>
+              <ol>
+                {ranking.map((j, i) => (
+                  <li key={i} className={j.nome === jogador.nome ? 'destaque' : ''}>
+                    <span className="rank-nome">{j.nome}</span>
+                    <span className="rank-pontos">{j.pontuacao}pts</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
       )}
 
       {fase === 'memorizacao' && (
@@ -219,7 +325,7 @@ function App() {
           <div className="resultado-resumo">
             <p className="acertos">{resultado.acertos} / {resultado.total}</p>
             <p className="taxa">{(resultado.taxa * 100).toFixed(0)}%</p>
-            <p className="pontuacao">Pontuação: {resultado.pontuacao}</p>
+            <p className="pontuacao">+{Math.round(resultado.pontuacao * 10)} pontos</p>
           </div>
           <div className="detalhes-grid">
             {resultado.detalhes.map((detalhe) => (
