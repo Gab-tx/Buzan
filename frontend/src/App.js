@@ -17,6 +17,7 @@ function App() {
   const [tema, setTema] = useState('sistema');
   const [mostrarInfo, setMostrarInfo] = useState(false);
   const [abaInfo, setAbaInfo] = useState('instrucoes');
+  const [carregando, setCarregando] = useState(false);
 
   useEffect(() => {
     const jogadorSalvo = localStorage.getItem('jogador');
@@ -95,12 +96,19 @@ function App() {
   }, [tempo, fase, iniciarResposta]);
 
   const iniciarJogo = async () => {
-    const res = await fetch(`${API_URL}/gerar-palavras/${nivel}`);
-    const data = await res.json();
-    setPalavras(data.palavras);
-    setTempo(data.tempo);
-    setTempoTotal(data.tempo);
-    setFase('memorizacao');
+    setCarregando(true);
+    try {
+      const res = await fetch(`${API_URL}/gerar-palavras/${nivel}`);
+      const data = await res.json();
+      setPalavras(data.palavras);
+      setTempo(data.tempo);
+      setTempoTotal(data.tempo);
+      setFase('memorizacao');
+    } catch (error) {
+      alert('Erro ao conectar com o servidor. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const handleResposta = (indice, valor) => {
@@ -263,7 +271,17 @@ function App() {
 
       {fase === 'inicio' && (
         <div className="fase-container">
-          <button onClick={iniciarJogo}>Iniciar Jogo</button>
+          {carregando ? (
+            <div className="loading">
+              <div className="spinner"></div>
+              <p>Carregando... O servidor pode levar até 50s para iniciar</p>
+            </div>
+          ) : (
+            <>
+              <button onClick={iniciarJogo}>Iniciar Jogo</button>
+              <p className="aviso">⚠️ Primeira vez? O servidor pode demorar até 50s para responder</p>
+            </>
+          )}
           {ranking.length > 0 && (
             <div className="ranking-box">
               <h3>🏆 Ranking</h3>

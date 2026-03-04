@@ -498,3 +498,36 @@ button:hover {
   color: var(--accent);
   font-weight: 600;
 }
+
+.aviso {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading p {
+  color: var(--text-secondary);
+  text-align: center;
+}
