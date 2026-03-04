@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 function App() {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
   const [fase, setFase] = useState('inicio');
   const [nivel, setNivel] = useState(1);
   const [palavras, setPalavras] = useState([]);
@@ -41,7 +42,7 @@ function App() {
   }, [tempo, fase, iniciarResposta]);
 
   const iniciarJogo = async () => {
-    const res = await fetch(`http://localhost:8000/gerar-palavras/${nivel}`);
+    const res = await fetch(`${API_URL}/gerar-palavras/${nivel}`);
     const data = await res.json();
     setPalavras(data.palavras);
     setTempo(data.tempo);
@@ -55,7 +56,7 @@ function App() {
 
   const enviarRespostas = async () => {
     const respostasArray = palavras.map((_, i) => respostas[i] || '');
-    const res = await fetch('http://localhost:8000/avaliar', {
+    const res = await fetch(`${API_URL}/avaliar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -75,7 +76,7 @@ function App() {
     setNivel(novoNivel);
     setResultado(null);
     
-    const res = await fetch(`http://localhost:8000/gerar-palavras/${novoNivel}`);
+    const res = await fetch(`${API_URL}/gerar-palavras/${novoNivel}`);
     const data = await res.json();
     setPalavras(data.palavras);
     setTempo(data.tempo);
