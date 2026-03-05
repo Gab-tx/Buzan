@@ -9,6 +9,9 @@ import unicodedata
 from collections import Counter
 from supabase import create_client, Client
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -20,8 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SUPABASE_URL = "https://rczlgswjjrgkkqylmewo.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjemxnc3dqanJna2txeWxtZXdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5NjI5NzcsImV4cCI6MjA1NjUzODk3N30.sb_publishable_l4cB-gfhtdPVY4myUiArbA_1CVe-Fua"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 nltk.download('mac_morpho', quiet=True)
