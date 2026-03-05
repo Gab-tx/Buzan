@@ -127,7 +127,7 @@ def atualizar_jogador(jogador: JogadorUpdate):
 @app.get("/ranking")
 def buscar_ranking():
     try:
-        result = supabase.table('jogadores').select('*').order('pontuacao', desc=True).limit(10).execute()
+        result = supabase.table('jogadores').select('nome, pontuacao').order('pontuacao', desc=True).limit(10).execute()
         return result.data
     except Exception as e:
         return {"error": str(e)}

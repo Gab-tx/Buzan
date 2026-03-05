@@ -333,7 +333,7 @@ function App() {
               <h3>🏆 Ranking</h3>
               <ol>
                 {ranking.map((j, i) => (
-                  <li key={i} className={jogador && j.device_id === jogador.device_id ? 'destaque' : ''}>
+                  <li key={i} className={jogador && j.nome === jogador.nome ? 'destaque' : ''}>
                     <span className="rank-nome">{j.nome}</span>
                     <span className="rank-pontos">{j.pontuacao}pts</span>
                   </li>
