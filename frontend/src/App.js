@@ -19,18 +19,7 @@ function App() {
   const [abaInfo, setAbaInfo] = useState('instrucoes');
   const [carregando, setCarregando] = useState(false);
 
-  useEffect(() => {
-    let deviceId = localStorage.getItem('deviceId');
-    if (!deviceId) {
-      deviceId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('deviceId', deviceId);
-    }
-    
-    buscarJogadorNoServidor(deviceId);
-    carregarRanking();
-  }, []);
-
-  const buscarJogadorNoServidor = async (deviceId) => {
+  const buscarJogadorNoServidor = useCallback(async (deviceId) => {
     try {
       const res = await fetch(`${API_URL}/jogador/${deviceId}`);
       const data = await res.json();
@@ -41,7 +30,28 @@ function App() {
     } catch (error) {
       console.error('Erro ao buscar jogador:', error);
     }
-  };
+  }, [API_URL]);
+
+  const carregarRanking = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/ranking`);
+      const data = await res.json();
+      setRanking(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar ranking:', error);
+    }
+  }, [API_URL]);
+
+  useEffect(() => {
+    let deviceId = localStorage.getItem('deviceId');
+    if (!deviceId) {
+      deviceId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('deviceId', deviceId);
+    }
+    
+    buscarJogadorNoServidor(deviceId);
+    carregarRanking();
+  }, [buscarJogadorNoServidor, carregarRanking]);
 
   useEffect(() => {
     if (tema === 'sistema') {
@@ -51,16 +61,6 @@ function App() {
       document.body.className = tema;
     }
   }, [tema]);
-
-  const carregarRanking = async () => {
-    try {
-      const res = await fetch(`${API_URL}/ranking`);
-      const data = await res.json();
-      setRanking(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar ranking:', error);
-    }
-  };
 
   const fazerLogin = async () => {
     if (!nomeInput.trim()) return;
@@ -324,7 +324,7 @@ function App() {
               <h3>🏆 Ranking</h3>
               <ol>
                 {ranking.map((j, i) => (
-                  <li key={i} className={jogador && j.device_id === jogador.device_id ? 'destaque' : ''}>
+                  <li key={i} className={jogador && j.nome === jogador.nome ? 'destaque' : ''}>
                     <span className="rank-nome">{j.nome}</span>
                     <span className="rank-pontos">{j.pontuacao}pts</span>
                   </li>
