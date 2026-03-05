@@ -607,19 +607,20 @@ button:hover {
 }
 
 .btn-sair {
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
   background: var(--error);
   margin: 0;
   width: auto;
-  min-height: 44px;
-  min-width: none;
-  box-shadow: var(--shadow-sm);
+  min-height: auto;
+  box-shadow: none;
+  border-radius: 6px;
 }
 
 .btn-sair:active {
   background: #dc2626;
+  transform: scale(0.95);
 }
 
 .btn-sair:hover {
