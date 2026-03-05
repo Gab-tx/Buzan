@@ -7,6 +7,8 @@ from nltk.corpus import mac_morpho
 import random
 import unicodedata
 from collections import Counter
+from supabase import create_client, Client
+import os
 
 app = FastAPI()
 
@@ -17,6 +19,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+SUPABASE_URL = "https://rczlgswjjrgkkqylmewo.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjemxnc3dqanJna2txeWxtZXdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5NjI5NzcsImV4cCI6MjA1NjUzODk3N30.sb_publishable_l4cB-gfhtdPVY4myUiArbA_1CVe-Fua"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 nltk.download('mac_morpho', quiet=True)
 
@@ -70,6 +76,58 @@ jogo = JogoMemoria()
 class AvaliarRequest(BaseModel):
     respostas: List[str]
     palavras_corretas: List[str]
+
+class JogadorCreate(BaseModel):
+    device_id: str
+    nome: str
+
+class JogadorUpdate(BaseModel):
+    device_id: str
+    pontuacao: int
+
+@app.post("/jogador/criar")
+def criar_jogador(jogador: JogadorCreate):
+    try:
+        existing = supabase.table('jogadores').select('*').eq('device_id', jogador.device_id).execute()
+        if existing.data:
+            return {"error": "Jogador já existe", "jogador": existing.data[0]}
+        
+        result = supabase.table('jogadores').insert({
+            "device_id": jogador.device_id,
+            "nome": jogador.nome,
+            "pontuacao": 0
+        }).execute()
+        return {"success": True, "jogador": result.data[0]}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/jogador/{device_id}")
+def buscar_jogador(device_id: str):
+    try:
+        result = supabase.table('jogadores').select('*').eq('device_id', device_id).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/jogador/atualizar")
+def atualizar_jogador(jogador: JogadorUpdate):
+    try:
+        result = supabase.table('jogadores').update({
+            "pontuacao": jogador.pontuacao
+        }).eq('device_id', jogador.device_id).execute()
+        return {"success": True, "jogador": result.data[0]}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/ranking")
+def buscar_ranking():
+    try:
+        result = supabase.table('jogadores').select('*').order('pontuacao', desc=True).limit(10).execute()
+        return result.data
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/gerar-palavras/{nivel}")
 def gerar_palavras(nivel: int):

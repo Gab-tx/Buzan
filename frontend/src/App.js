@@ -20,13 +20,28 @@ function App() {
   const [carregando, setCarregando] = useState(false);
 
   useEffect(() => {
-    const jogadorSalvo = localStorage.getItem('jogador');
-    if (jogadorSalvo) {
-      setJogador(JSON.parse(jogadorSalvo));
-      setFase('inicio');
+    let deviceId = localStorage.getItem('deviceId');
+    if (!deviceId) {
+      deviceId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('deviceId', deviceId);
     }
+    
+    buscarJogadorNoServidor(deviceId);
     carregarRanking();
   }, []);
+
+  const buscarJogadorNoServidor = async (deviceId) => {
+    try {
+      const res = await fetch(`${API_URL}/jogador/${deviceId}`);
+      const data = await res.json();
+      if (data && !data.error) {
+        setJogador(data);
+        setFase('inicio');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar jogador:', error);
+    }
+  };
 
   useEffect(() => {
     if (tema === 'sistema') {
@@ -37,45 +52,67 @@ function App() {
     }
   }, [tema]);
 
-  const carregarRanking = () => {
-    const rankingData = JSON.parse(localStorage.getItem('ranking') || '[]');
-    setRanking(rankingData.sort((a, b) => b.pontuacao - a.pontuacao).slice(0, 10));
+  const carregarRanking = async () => {
+    try {
+      const res = await fetch(`${API_URL}/ranking`);
+      const data = await res.json();
+      setRanking(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar ranking:', error);
+    }
   };
 
-  const fazerLogin = () => {
+  const fazerLogin = async () => {
     if (!nomeInput.trim()) return;
-    const rankingData = JSON.parse(localStorage.getItem('ranking') || '[]');
-    const jogadorExistente = rankingData.find(j => j.nome === nomeInput.trim());
     
-    const novoJogador = jogadorExistente || { nome: nomeInput.trim(), pontuacao: 0 };
-    localStorage.setItem('jogador', JSON.stringify(novoJogador));
-    setJogador(novoJogador);
-    setFase('inicio');
+    const deviceId = localStorage.getItem('deviceId');
+    setCarregando(true);
+    
+    try {
+      const res = await fetch(`${API_URL}/jogador/criar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: deviceId, nome: nomeInput.trim() })
+      });
+      const data = await res.json();
+      
+      if (data.error && data.jogador) {
+        alert('Você já tem uma conta neste dispositivo: ' + data.jogador.nome);
+        setJogador(data.jogador);
+        setFase('inicio');
+      } else if (data.success) {
+        setJogador(data.jogador);
+        setFase('inicio');
+        carregarRanking();
+      }
+    } catch (error) {
+      alert('Erro ao criar jogador. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const sair = () => {
-    localStorage.removeItem('jogador');
     setJogador(null);
     setFase('login');
     setNivel(1);
   };
 
-  const atualizarPontuacao = (pontos) => {
-    const jogadorAtualizado = { ...jogador, pontuacao: jogador.pontuacao + pontos };
+  const atualizarPontuacao = async (pontos) => {
+    const novaPontuacao = jogador.pontuacao + pontos;
+    const jogadorAtualizado = { ...jogador, pontuacao: novaPontuacao };
     setJogador(jogadorAtualizado);
-    localStorage.setItem('jogador', JSON.stringify(jogadorAtualizado));
     
-    const rankingData = JSON.parse(localStorage.getItem('ranking') || '[]');
-    const index = rankingData.findIndex(j => j.nome === jogador.nome);
-    
-    if (index >= 0) {
-      rankingData[index] = jogadorAtualizado;
-    } else {
-      rankingData.push(jogadorAtualizado);
+    try {
+      await fetch(`${API_URL}/jogador/atualizar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: jogador.device_id, pontuacao: novaPontuacao })
+      });
+      carregarRanking();
+    } catch (error) {
+      console.error('Erro ao atualizar pontuação:', error);
     }
-    
-    localStorage.setItem('ranking', JSON.stringify(rankingData));
-    carregarRanking();
   };
 
   const iniciarResposta = useCallback(() => {
@@ -287,7 +324,7 @@ function App() {
               <h3>🏆 Ranking</h3>
               <ol>
                 {ranking.map((j, i) => (
-                  <li key={i} className={j.nome === jogador.nome ? 'destaque' : ''}>
+                  <li key={i} className={jogador && j.device_id === jogador.device_id ? 'destaque' : ''}>
                     <span className="rank-nome">{j.nome}</span>
                     <span className="rank-pontos">{j.pontuacao}pts</span>
                   </li>

@@ -32,9 +32,8 @@ Jogo de memória baseado no livro "Use sua mente" de Tony Buzan.
 
 ### Backend
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
+uv sync
+uvicorn backend.main:app --reload
 ```
 
 ### Frontend
