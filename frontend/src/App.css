@@ -614,6 +614,7 @@ button:hover {
   margin: 0;
   width: auto;
   min-height: 44px;
+  min-width: none;
   box-shadow: var(--shadow-sm);
 }
 
